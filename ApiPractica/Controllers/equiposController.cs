@@ -21,7 +21,31 @@ namespace ApiPractica.Controllers
 
         public IActionResult Get()
         {
-            List<equipos> listadoEquipos = (from e in _equiposContext.Equipos select e).ToList();
+            var listadoEquipos = (from e in _equiposContext.Equipos
+                                  join eq in _equiposContext.Estados_Equipo on
+                                  e.estado_equipo_id equals eq.id_estados_equipo
+                                  join te in _equiposContext.tipo_Equipo on
+                                  e.tipo_equipo_id equals te.id_tipo_equipo 
+                                  join m in _equiposContext.Marcas on
+                                  e.marca_id equals m.id_marcas
+                                             select new
+                                             {
+                                                e.id_equipos,
+                                                e.nombre,
+                                                e.descripcion,
+                                                e.tipo_equipo_id,
+                                                tipo_equipo_descripcion = te.descripcion,
+                                                e.marca_id,
+                                                m.nombre_marca,
+                                                e.modelo,
+                                                e.anio_compra,
+                                                e.costo,
+                                                e.vida_util,
+                                                e.estado_equipo_id,
+                                                eq.id_estados_equipo,
+                                                descripcion_estado_equipo = eq.descripcion,
+                                                e.estado
+                                             }).ToList();
             if (listadoEquipos.Count == 0)
             {
                 return NotFound();
@@ -48,7 +72,7 @@ namespace ApiPractica.Controllers
         [HttpGet]
         [Route("find/{filtro}")]
 
-        public IActionResult FinfByDescription(string filtro) {
+        public IActionResult FindByDescription(string filtro) {
             List<equipos> equipos = (from e in _equiposContext.Equipos
                                      where e.descripcion.Contains(filtro)
                                      select e).ToList();
@@ -100,10 +124,10 @@ namespace ApiPractica.Controllers
             return Ok(equipoModificar);
         }
 
-        [HttpDelete]
-        [Route("eliminar/{id}")]
+        [HttpPut]
+        [Route("actualizarEstado/{id}")]
 
-        public IActionResult EliminarEquipo(int id)
+        public IActionResult ActualizarEstadoEquipo(int id, string estado)
         {
             equipos? equipo = (from e in _equiposContext.Equipos
                                where e.id_equipos == id
@@ -112,10 +136,9 @@ namespace ApiPractica.Controllers
             {
                 return NotFound();
             }
-
-            _equiposContext.Attach(equipo);
-            _equiposContext.Remove(equipo);
-            _equiposContext.SaveChanges(); 
+            equipo.estado = estado;
+            _equiposContext.Entry(equipo).State = EntityState.Modified;
+            _equiposContext.SaveChanges();
             return Ok(equipo);
         }
     }
